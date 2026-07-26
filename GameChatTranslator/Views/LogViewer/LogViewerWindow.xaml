@@ -64,6 +64,7 @@
 
         <TextBox x:Name="TxtLog"
                  IsReadOnly="True"
+                 IsUndoEnabled="False"
                  AcceptsReturn="True"
                  TextWrapping="NoWrap"
                  VerticalScrollBarVisibility="Auto"

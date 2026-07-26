@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -9,12 +10,14 @@ namespace GameTranslator
 {
     /// <summary>
     /// 현재 세션 로그 파일을 별도 창에서 실시간으로 보여주는 창입니다.
-    /// 기존 로그는 파일에서 한 번 읽고, 새 로그는 MainWindow.AppendLog에서 직접 전달받습니다.
+    /// 기존 로그는 최근 줄만 파일에서 읽고, 새 로그는 MainWindow.AppendLog에서 직접 전달받습니다.
     /// </summary>
     public partial class LogViewerWindow : Window
     {
+        private const int MaxDisplayLogLines = LogViewerBuffer.DefaultMaxDisplayLines;
         private readonly DispatcherTimer resourceTimer;
         private readonly string logFilePath;
+        private readonly Queue<string> displayLines = new Queue<string>(MaxDisplayLogLines);
         private bool waitingMessageShown;
         private bool allowClose;
         private TimeSpan lastCpuTime;
@@ -85,14 +88,14 @@ namespace GameTranslator
         }
 
         /// <summary>
-        /// 로그 파일을 처음부터 다시 읽어 화면에 표시합니다.
+        /// 로그 파일의 최근 줄만 다시 읽어 화면에 표시합니다.
         /// 실제 로그 파일은 수정하지 않고 표시 내용과 읽기 위치만 갱신합니다.
         /// </summary>
         private void ReloadFromStart()
         {
-            TxtLog.Clear();
+            ClearDisplayBuffer();
             waitingMessageShown = false;
-            TxtStatus.Text = logFilePath;
+            SetLogStatus();
 
             if (!File.Exists(logFilePath))
             {
@@ -103,7 +106,12 @@ namespace GameTranslator
 
             try
             {
-                TxtLog.Text = File.ReadAllText(logFilePath, Encoding.UTF8);
+                foreach (string line in LogViewerBuffer.ReadRecentLines(logFilePath, MaxDisplayLogLines, Encoding.UTF8))
+                {
+                    displayLines.Enqueue(line);
+                }
+
+                RenderDisplayBuffer();
                 waitingMessageShown = false;
                 ScrollToEndIfNeeded();
             }
@@ -127,12 +135,20 @@ namespace GameTranslator
 
             if (waitingMessageShown)
             {
-                TxtLog.Clear();
+                ClearDisplayBuffer();
                 waitingMessageShown = false;
             }
 
-            TxtStatus.Text = logFilePath;
-            TxtLog.AppendText(logEntry);
+            SetLogStatus();
+            bool trimmed = LogViewerBuffer.AppendEntryLines(displayLines, logEntry, MaxDisplayLogLines);
+            if (trimmed)
+            {
+                RenderDisplayBuffer();
+            }
+            else
+            {
+                TxtLog.AppendText(logEntry);
+            }
             ScrollToEndIfNeeded();
         }
 
@@ -167,8 +183,34 @@ namespace GameTranslator
         /// </summary>
         private void BtnClearView_Click(object sender, RoutedEventArgs e)
         {
-            TxtLog.Clear();
+            ClearDisplayBuffer();
             waitingMessageShown = false;
+        }
+
+        /// <summary>
+        /// 로그창 UI TextBox와 내부 최근 줄 버퍼를 함께 비웁니다.
+        /// </summary>
+        private void ClearDisplayBuffer()
+        {
+            displayLines.Clear();
+            TxtLog.Clear();
+        }
+
+        /// <summary>
+        /// 내부 최근 줄 버퍼를 TextBox에 다시 반영합니다.
+        /// 오래된 줄이 제거된 경우에만 전체 문자열을 재구성합니다.
+        /// </summary>
+        private void RenderDisplayBuffer()
+        {
+            TxtLog.Text = LogViewerBuffer.ToDisplayText(displayLines);
+        }
+
+        /// <summary>
+        /// 로그 파일 위치와 UI 표시 상한을 상태 영역에 보여줍니다.
+        /// </summary>
+        private void SetLogStatus()
+        {
+            TxtStatus.Text = $"{logFilePath} · 최근 최대 {MaxDisplayLogLines:N0}줄 표시";
         }
 
         /// <summary>

@@ -22,6 +22,7 @@
     <Compile Include="../GameChatTranslator/Core/ChatTextAnalyzer.cs" Link="Core/ChatTextAnalyzer.cs" />
     <Compile Include="../GameChatTranslator/Core/OcrMaskProcessor.cs" Link="Core/OcrMaskProcessor.cs" />
     <Compile Include="../GameChatTranslator/Core/OcrPerformanceReport.cs" Link="Core/OcrPerformanceReport.cs" />
+    <Compile Include="../GameChatTranslator/Core/LogViewerBuffer.cs" Link="Core/LogViewerBuffer.cs" />
     <Compile Include="../GameChatTranslator/Core/OcrLanguageStatusFormatter.cs" Link="Core/OcrLanguageStatusFormatter.cs" />
     <Compile Include="../GameChatTranslator/Core/OcrService.cs" Link="Core/OcrService.cs" />
     <Compile Include="../GameChatTranslator/Core/OcrDiagnosticExporter.cs" Link="Core/OcrDiagnosticExporter.cs" />
